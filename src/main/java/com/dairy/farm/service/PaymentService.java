@@ -23,15 +23,10 @@ public class PaymentService {
     private MilkSaleRepository milkSaleRepository;
 
     // Add payment method that handles overpayments and compensates for new sales
-    public Payment addPayment(Payment payment) {
-        MilkSale milkSale = payment.getMilkSale();
-
-        if (milkSale == null) {
-            throw new IllegalArgumentException("MilkSale must not be null.");
-        }
-
-        // Fetch MilkSale from repository
-        milkSale = milkSaleRepository.findById(milkSale.getId())
+    // Add payment method that handles overpayments and compensates for new sales
+    public Payment addPayment(Long milkSaleId, Payment payment) {
+        // Fetch MilkSale by the provided ID
+        MilkSale milkSale = milkSaleRepository.findById(milkSaleId)
                 .orElseThrow(() -> new IllegalArgumentException("MilkSale not found"));
 
         // Check if the milk sale has been fully paid
@@ -55,6 +50,7 @@ public class PaymentService {
         // Save the payment with new balance and compensation details
         return savePayment(payment, milkSale, newBalance, compensation, paymentStatus);
     }
+
 
     // Apply overpayment compensation to current payment
     private double applyOverpaymentCompensation(Payment payment) {
