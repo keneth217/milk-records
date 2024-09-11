@@ -12,7 +12,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
+
 @RequestMapping("/api/payments")
+
 public class PaymentController {
 
     @Autowired
@@ -25,11 +27,12 @@ public class PaymentController {
         return ResponseEntity.ok(payments);
     }
 
-    // Add a new payment
-    @PostMapping
-    public ResponseEntity<?> addPayment(@RequestBody Payment payment) {
+
+    // Method to add payment by milk sale ID
+    @PostMapping("/{milkSaleId}")
+    public ResponseEntity<?> addPayment(@PathVariable Long milkSaleId, @RequestBody Payment payment) {
         try {
-            Payment createdPayment = paymentService.addPayment(payment);
+            Payment createdPayment = paymentService.addPayment(milkSaleId, payment); // Pass milkSaleId
             return new ResponseEntity<>(createdPayment, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
