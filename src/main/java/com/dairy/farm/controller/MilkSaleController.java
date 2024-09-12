@@ -4,6 +4,7 @@ import com.dairy.farm.entity.MilkSale;
 import com.dairy.farm.enums.PaymentStatus;
 import com.dairy.farm.service.MilkSaleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,13 +19,18 @@ public class MilkSaleController {
 
     @Autowired
     private MilkSaleService milkSaleService;
-
-    // Get all milk sales
     @GetMapping
-    public ResponseEntity<List<MilkSale>> getAllSales() {
-        List<MilkSale> sales = milkSaleService.getAllSales();
-        return new ResponseEntity<>(sales, HttpStatus.OK);
+    public Page<MilkSale> getMilkSales(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int pageSize) {
+        return milkSaleService.getPaginatedSales(page, pageSize);
     }
+    // Get all milk sales
+//    @GetMapping
+//    public ResponseEntity<List<MilkSale>> getAllSales() {
+//        List<MilkSale> sales = milkSaleService.getAllSales();
+//        return new ResponseEntity<>(sales, HttpStatus.OK);
+//    }
 
     // Get milk sales by specific date
     @GetMapping("/by-date")
