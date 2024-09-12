@@ -6,6 +6,9 @@ import com.dairy.farm.enums.PaymentStatus;
 import com.dairy.farm.repository.MilkSaleRepository;
 import com.dairy.farm.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -18,11 +21,17 @@ public class MilkSaleService {
     private MilkSaleRepository milkSaleRepository;
     @Autowired
     private PaymentRepository paymentRepository;
+    public Page<MilkSale> getPaginatedSales(int page, int pageSize) {
+        // Ensure the page number is not less than 1 to avoid negative index
+        int pageIndex = Math.max(page - 1, 0);  // Converts 1-based index to 0-based index, ensures it's non-negative
+        Pageable pageable = PageRequest.of(pageIndex, pageSize);
+        return milkSaleRepository.findAll(pageable);
+    }
 
     // Fetch all milk sales
-    public List<MilkSale> getAllSales() {
-        return milkSaleRepository.findAll();
-    }
+//    public List<MilkSale> getAllSales() {
+//        return milkSaleRepository.findAll();
+//    }
 
     // Fetch sales by date
     public List<MilkSale> getSalesByDate(LocalDate date) {
