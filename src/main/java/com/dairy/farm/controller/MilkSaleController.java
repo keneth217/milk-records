@@ -19,19 +19,10 @@ public class MilkSaleController {
 
     @Autowired
     private MilkSaleService milkSaleService;
-    @GetMapping
-    public Page<MilkSale> getMilkSales(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "5") int pageSize) {
-        return milkSaleService.getPaginatedSales(page, pageSize);
+    @GetMapping("/{pageNumber}")
+    public ResponseEntity<?> getAllPageableProducts(@PathVariable int pageNumber){
+        return  ResponseEntity.ok(milkSaleService.getAllPageableSales(pageNumber));
     }
-    // Get all milk sales
-//    @GetMapping
-//    public ResponseEntity<List<MilkSale>> getAllSales() {
-//        List<MilkSale> sales = milkSaleService.getAllSales();
-//        return new ResponseEntity<>(sales, HttpStatus.OK);
-//    }
-
     // Get milk sales by specific date
     @GetMapping("/by-date")
     public ResponseEntity<List<MilkSale>> getSalesByDate(@RequestParam LocalDate date) {

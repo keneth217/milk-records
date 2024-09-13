@@ -1,5 +1,7 @@
 package com.dairy.farm.service;
 
+import com.dairy.farm.dto.MilkDto;
+import com.dairy.farm.dto.MilkSaleDto;
 import com.dairy.farm.entity.MilkSale;
 import com.dairy.farm.entity.Payment;
 import com.dairy.farm.enums.PaymentStatus;
@@ -13,6 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.dairy.farm.mapper.MilkSaleMapper.convertToMilkSaleDto;
 
 @Service
 public class MilkSaleService {
@@ -21,17 +26,31 @@ public class MilkSaleService {
     private MilkSaleRepository milkSaleRepository;
     @Autowired
     private PaymentRepository paymentRepository;
-    public Page<MilkSale> getPaginatedSales(int page, int pageSize) {
-        // Ensure the page number is not less than 1 to avoid negative index
-        int pageIndex = Math.max(page - 1, 0);  // Converts 1-based index to 0-based index, ensures it's non-negative
-        Pageable pageable = PageRequest.of(pageIndex, pageSize);
-        return milkSaleRepository.findAll(pageable);
-    }
 
-    // Fetch all milk sales
-//    public List<MilkSale> getAllSales() {
-//        return milkSaleRepository.findAll();
-//    }
+    public MilkSaleDto getAllPageableSales(int pageNumber) {
+        // Define a Pageable object with pageNumber and 5 records per page
+        Pageable pageable = PageRequest.of(pageNumber, 5);
+
+        // Fetch the paginated data from the repository
+        Page<MilkSale> productsPage = milkSaleRepository.findAll(pageable);
+
+        // Initialize the DTO
+        MilkSaleDto milkSaleDto = new MilkSaleDto();
+
+        // Set total pages and current page number in the DTO
+        milkSaleDto.setTotalPages(productsPage.getTotalPages());
+        milkSaleDto.setPageNumber(productsPage.getNumber());
+
+        // Map MilkSale entities to DTOs (assuming you have a method to convert MilkSale to MilkSaleDto)
+        List<MilkDto> milkSaleList = productsPage.stream()
+                .map(milkSale -> convertToMilkSaleDto(milkSale)) // Replace this with the actual conversion logic
+                .collect(Collectors.toList());
+
+        // Set the mapped list in the DTO
+        milkSaleDto.setMilkSalesList(milkSaleList);
+
+        return milkSaleDto;
+    }
 
     // Fetch sales by date
     public List<MilkSale> getSalesByDate(LocalDate date) {

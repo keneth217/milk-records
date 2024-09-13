@@ -5,10 +5,12 @@ import com.dairy.farm.enums.PaymentStatus;
 import com.dairy.farm.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @RestController
@@ -49,7 +51,7 @@ public class PaymentController {
             List<Payment> payments = paymentService.getPaymentsByDate(localDate);
 
             if (payments.isEmpty()) {
-                return new ResponseEntity<>("No payments found for the specified date.", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("No payments found for the specified date.", HttpStatusCode.valueOf(400));
             }
             return new ResponseEntity<>(payments, HttpStatus.OK);
         } catch (Exception e) {
@@ -67,13 +69,18 @@ public class PaymentController {
             List<Payment> payments = paymentService.getPaymentsByDateRange(start, end);
 
             if (payments.isEmpty()) {
-                return new ResponseEntity<>("No payments found for the specified date range.", HttpStatus.NOT_FOUND);
+                return new ResponseEntity<>("No payments found for the specified date range.", HttpStatusCode.valueOf(400));
+
             }
             return new ResponseEntity<>(payments, HttpStatus.OK);
+        } catch (DateTimeParseException e) {
+            return new ResponseEntity<>("Invalid date format. Please use yyyy-MM-dd.", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>("Invalid date range format or other error occurred.", HttpStatus.BAD_REQUEST);
+            // Log the exception here
+            return new ResponseEntity<>("An error occurred while processing your request.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
     // Get payments by status (e.g., PAID, PARTIALLY_PAID, OVERPAID)
     @GetMapping("/status/{status}")
