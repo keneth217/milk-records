@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 
@@ -27,6 +29,10 @@ public class PaymentController {
     public ResponseEntity<List<Payment>> allPayments() {
         List<Payment> payments = paymentService.getAllPayments();
         return ResponseEntity.ok(payments);
+    }
+    @GetMapping("/status-counts")
+    public Map<PaymentStatus, Integer> getPaymentStatusCounts() {
+        return paymentService.getStatusCounts();
     }
 
 
