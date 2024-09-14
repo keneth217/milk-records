@@ -9,9 +9,12 @@ import com.dairy.farm.repository.MilkSaleRepository;
 import com.dairy.farm.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class PaymentService {
@@ -19,8 +22,21 @@ public class PaymentService {
     @Autowired
     private PaymentRepository paymentRepository;
 
+
+
     @Autowired
     private MilkSaleRepository milkSaleRepository;
+
+    public Map<PaymentStatus, Integer> getStatusCounts() {
+        Map<PaymentStatus, Integer> statusCounts = new HashMap<>();
+
+        statusCounts.put(PaymentStatus.UNPAID, (int) milkSaleRepository.countByStatus(PaymentStatus.UNPAID));
+        statusCounts.put(PaymentStatus.PAID, (int) milkSaleRepository.countByStatus(PaymentStatus.PAID));
+        statusCounts.put(PaymentStatus.PARTIALLY_PAID, (int) milkSaleRepository.countByStatus(PaymentStatus.PARTIALLY_PAID));
+        statusCounts.put(PaymentStatus.OVERPAID, (int) milkSaleRepository.countByStatus(PaymentStatus.OVERPAID));
+
+        return statusCounts;
+    }
 
     // Add payment method that handles overpayments and compensates for new sales
     // Add payment method that handles overpayments and compensates for new sales
@@ -140,6 +156,8 @@ public class PaymentService {
     public List<Payment> getPaymentsByStatus(PaymentStatus status) {
         return paymentRepository.findByStatus(status);
     }
+
+
 
     // Get payments by milk sale ID
     public List<Payment> getPaymentsByMilkSaleId(Long milkSaleId) {
