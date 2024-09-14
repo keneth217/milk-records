@@ -1,5 +1,7 @@
 package com.dairy.farm.controller;
 
+import com.dairy.farm.dto.MilkDto;
+import com.dairy.farm.dto.MilkSaleDto;
 import com.dairy.farm.entity.MilkSale;
 import com.dairy.farm.enums.PaymentStatus;
 import com.dairy.farm.service.MilkSaleService;
@@ -37,6 +39,11 @@ public class MilkSaleController {
         return new ResponseEntity<>(sales, HttpStatus.OK);
     }
 
+    @GetMapping("/last-10-days")
+    public ResponseEntity<List<MilkDto>> getSalesForLastTenDays() {
+        List<MilkDto> salesDto = milkSaleService.getSalesForLast10Days();
+        return new ResponseEntity<>(salesDto, HttpStatus.OK);
+    }
     // Get milk sales by date and payment status
     @GetMapping("/by-date-and-status")
     public ResponseEntity<List<MilkSale>> getSalesByDateAndStatus(@RequestParam LocalDate date, @RequestParam PaymentStatus status) {
