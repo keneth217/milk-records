@@ -5,6 +5,7 @@ import com.dairy.farm.dto.MilkSaleDto;
 import com.dairy.farm.entity.MilkSale;
 import com.dairy.farm.entity.Payment;
 import com.dairy.farm.enums.PaymentStatus;
+import com.dairy.farm.mapper.MilkSaleMapper;
 import com.dairy.farm.repository.MilkSaleRepository;
 import com.dairy.farm.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,17 @@ public class MilkSaleService {
     private MilkSaleRepository milkSaleRepository;
     @Autowired
     private PaymentRepository paymentRepository;
+
+    public List<MilkDto> getSalesForLast10Days() {
+        LocalDate today = LocalDate.now();
+        LocalDate tenDaysAgo = today.minusDays(10);
+        List<MilkSale> milkSales = milkSaleRepository.findByDateBetweenOrderByDateAsc(tenDaysAgo, today);
+
+        // Convert entities to DTOs
+        return milkSales.stream()
+                .map(MilkSaleMapper::convertToMilkSaleDto) // Assuming you have this mapper
+                .collect(Collectors.toList());
+    }
 
     public MilkSaleDto getAllPageableSales(int pageNumber) {
         // Define a Pageable object with pageNumber and 5 records per page
