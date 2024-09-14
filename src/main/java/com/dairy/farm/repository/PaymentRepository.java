@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // Method to find payments by MilkSale
@@ -27,7 +28,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Double sumTotalOverpayments();  // Sum of all overpayments (negative balances)
 
 
-
+    long countByStatus(PaymentStatus status);
     List<Payment> findByStatus(PaymentStatus status);
 
 }
