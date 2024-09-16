@@ -1,5 +1,6 @@
 package com.dairy.farm.service;
 
+import com.dairy.farm.dto.DashboardTotals;
 import com.dairy.farm.dto.MilkDto;
 import com.dairy.farm.dto.MilkSaleDto;
 import com.dairy.farm.entity.MilkSale;
@@ -35,7 +36,7 @@ public class MilkSaleService {
 
         // Convert entities to DTOs
         return milkSales.stream()
-                .map(MilkSaleMapper::convertToMilkSaleDto) // Assuming you have this mapper
+                .map(MilkSaleMapper::convertToMilkSaleDto) //  Assuming you have this mapper.
                 .collect(Collectors.toList());
     }
 
@@ -129,4 +130,49 @@ public class MilkSaleService {
                 .mapToDouble(MilkSale::getRemainingAmount)
                 .sum();
     }
+    public DashboardTotals getDashboardTotals() {
+        LocalDate today = LocalDate.now();
+
+        // Current month start and end dates
+        LocalDate startOfThisMonth = today.withDayOfMonth(1);
+        LocalDate endOfThisMonth = today.withDayOfMonth(today.lengthOfMonth());
+
+        // Last month start and end dates
+        LocalDate startOfLastMonth = today.minusMonths(1).withDayOfMonth(1);
+        LocalDate endOfLastMonth = today.minusMonths(1).withDayOfMonth(today.minusMonths(1).lengthOfMonth());
+
+        // Fetch sales for current and last month
+        List<MilkSale> thisMonthSales = milkSaleRepository.findByDateBetweenOrderByDateAsc(startOfThisMonth, endOfThisMonth);
+        List<MilkSale> lastMonthSales = milkSaleRepository.findByDateBetweenOrderByDateAsc(startOfLastMonth, endOfLastMonth);
+
+        // Calculate totals for current month
+        Double thisMonthTotalLitres = thisMonthSales.stream().mapToDouble(MilkSale::getTotalLitres).sum();
+        Double thisMonthTotalEarnings = thisMonthSales.stream().mapToDouble(sale -> sale.getTotalPaidAmount()).sum();
+
+        // Calculate totals for last month
+        Double lastMonthTotalLitres = lastMonthSales.stream().mapToDouble(MilkSale::getTotalLitres).sum();
+        Double lastMonthTotalEarnings = lastMonthSales.stream().mapToDouble(sale -> sale.getTotalPaidAmount()).sum();
+
+        // Fetch total litres, total payments, total balance, and total overpayments for all time
+        Double totalLitres = milkSaleRepository.getTotalLitres(); // Custom query to get total litres
+        Double totalAmountPaid = milkSaleRepository.getTotalAmountPaid(); // Custom query to get total amount paid
+        Double totalBalance = milkSaleRepository.getTotalBalance(); // Custom query to get total balance
+        Double totalOverpayments = paymentRepository.getTotalOverpayments().orElse(0.0); // Fetch total overpayments
+
+        // Build and return the DashboardTotals DTO
+        return new DashboardTotals(
+                totalLitres,
+                totalAmountPaid,
+                totalBalance,
+                totalOverpayments, // This should be a Double, not null
+                lastMonthTotalEarnings,
+                thisMonthTotalEarnings,
+                lastMonthTotalLitres,
+                thisMonthTotalLitres
+        );
+    }
+
+
+
+
 }
