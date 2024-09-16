@@ -1,5 +1,6 @@
 package com.dairy.farm.controller;
 
+import com.dairy.farm.dto.DashboardTotals;
 import com.dairy.farm.dto.MilkDto;
 import com.dairy.farm.dto.MilkSaleDto;
 import com.dairy.farm.entity.MilkSale;
@@ -37,6 +38,12 @@ public class MilkSaleController {
     public ResponseEntity<List<MilkSale>> getSalesByStatus(@RequestParam PaymentStatus status) {
         List<MilkSale> sales = milkSaleService.getSalesByStatus(status);
         return new ResponseEntity<>(sales, HttpStatus.OK);
+    }
+
+    @GetMapping("/dashboard-totals")
+    public ResponseEntity<DashboardTotals> getDashboardTotals() {
+        DashboardTotals totals = milkSaleService.getDashboardTotals();
+        return ResponseEntity.ok(totals);
     }
 
     @GetMapping("/last-10-days")
