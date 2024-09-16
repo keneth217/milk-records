@@ -30,5 +30,16 @@ public interface MilkSaleRepository extends JpaRepository<MilkSale, Long> {
 
     long countByStatus(PaymentStatus status);
 
+    @Query("SELECT SUM(ms.totalLitres) FROM MilkSale ms")
+    Double getTotalLitres();
+
+    @Query("SELECT SUM(ms.totalPaidAmount) FROM MilkSale ms")
+    Double getTotalAmountPaid();
+
+    @Query("SELECT SUM(ms.remainingAmount) FROM MilkSale ms")
+    Double getTotalBalance();
+
+
+
 
 }
