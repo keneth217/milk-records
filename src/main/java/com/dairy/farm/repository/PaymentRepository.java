@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // Method to find payments by MilkSale
@@ -26,7 +27,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     @Query("SELECT SUM(ABS(p.newBalance)) FROM Payment p WHERE p.newBalance < 0")
     Double sumTotalOverpayments();  // Sum of all overpayments (negative balances)
-
+    @Query("SELECT SUM(p.amountPaid) FROM Payment p WHERE p.newBalance < 0")
+    Optional<Double> getTotalOverpayments();
 
     long countByStatus(PaymentStatus status);
     List<Payment> findByStatus(PaymentStatus status);
