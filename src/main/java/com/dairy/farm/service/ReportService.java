@@ -2,16 +2,26 @@ package com.dairy.farm.service;
 
 import com.dairy.farm.entity.MilkSale;
 import com.dairy.farm.repository.MilkSaleRepository;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.borders.Border;
+import com.itextpdf.layout.element.*;
+import com.itextpdf.layout.property.TextAlignment;
+import com.itextpdf.layout.property.UnitValue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.net.MalformedURLException;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -20,113 +30,207 @@ public class ReportService {
     @Autowired
     private MilkSaleRepository milkSaleRepository;
 
+    public ByteArrayInputStream createSalesPdf() throws MalformedURLException {
+        List<MilkSale> milkSales = milkSaleRepository.findAllByOrderByDateAsc();
 
-    public byte[] generateExcelReport() {
-        // Create a Workbook
-        Workbook workbook = new XSSFWorkbook();
+        // Output stream to hold the PDF content
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        try {
-            // Create a Sheet
-            Sheet sheet = workbook.createSheet("Milk Sales Report");
+        // Initialize PDF document
+        PdfWriter writer = new PdfWriter(out);
+        PdfDocument pdfDoc = new PdfDocument(writer);
+        Document document = new Document(pdfDoc);
 
-            // Create a Font for styling header cells
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerFont.setFontHeightInPoints((short) 12);
+        // Add Farm Header with Logo and Details
+        String logoPath = "src/main/resources/static/logo.jpg";  // Adjust the path as per your project structure
+        ImageData logoData = ImageDataFactory.create(logoPath);
+        Image logo = new Image(logoData).scaleAbsolute(50, 50);
 
-            // Create a CellStyle with the font
-            CellStyle headerCellStyle = workbook.createCellStyle();
-            headerCellStyle.setFont(headerFont);
+        // Create a table for header with logo and farm details
+        Table headerTable = new Table(UnitValue.createPercentArray(new float[]{1, 4})).useAllAvailableWidth();
+        headerTable.addCell(new Cell().add(logo).setBorder(Border.NO_BORDER)); // Logo cell
 
-            // Create a Row for the header
-            Row headerRow = sheet.createRow(0);
+        // Add farm details in the second column
+        Cell farmDetailsCell = new Cell()
+                .add(new Paragraph("Farm Name: Dairy Farm Ltd").setBold().setFontSize(12))
+                .add(new Paragraph("Address: 1234 Farm Road, Green Valley").setFontSize(10))
+                .add(new Paragraph("Phone: +1234567890").setFontSize(10))
+                .add(new Paragraph("Location: Green Valley, TX").setFontSize(10))
+                .setBorder(Border.NO_BORDER)
+                .setTextAlignment(TextAlignment.LEFT);
 
-            // Define header cells
-            String[] columns = {"ID", "Date", "Day of Week", "Liters Sold"};
+        headerTable.addCell(farmDetailsCell);
 
-            // Create cells and set their style
-            for (int i = 0; i < columns.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(columns[i]);
-                cell.setCellStyle(headerCellStyle);
-            }
+        // Add header table to document
+        document.add(headerTable);
 
-            // Fetch data from the repository
-            List<MilkSale> milkSales = milkSaleRepository.findAll();
+        // Add a line separator after the header
+        SolidLine solidLine = new SolidLine(1f);  // Create a solid line with 1.0 thickness
+        LineSeparator separator = new LineSeparator(solidLine);
+        document.add(separator);
 
-            // Populate the sheet with data
-            int rowNum = 1;
-            for (MilkSale sale : milkSales) {
-                Row row = sheet.createRow(rowNum++);
+        // Add title for the sales report
+        document.add(new Paragraph("Milk Sales Report").setBold().setFontSize(16).setTextAlignment(TextAlignment.CENTER));
 
-                row.createCell(0).setCellValue(sale.getId());
-                row.createCell(1).setCellValue(sale.getDate().toString());
-                row.createCell(2).setCellValue(sale.getDayOfWeek());
-                row.createCell(3).setCellValue(sale.getTotalLitres());
-            }
+        // Add a gap before the sales table
+        document.add(new Paragraph("\n"));
 
-            // Resize all columns to fit the content size
-            for (int i = 0; i < columns.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+        // Define a table for the sales report with proper column widths
+        Table salesTable = new Table(UnitValue.createPercentArray(new float[]{1, 2, 2, 2, 2, 2, 2, 2})).useAllAvailableWidth();
+        salesTable.setWidth(UnitValue.createPercentValue(100)); // Use full width
 
-            // Write the output to a byte array
-            workbook.write(out);
-            workbook.close();
+        // Repeat header on every page
+        salesTable.setSkipFirstHeader(false);
 
-        } catch (IOException e) {
-            e.printStackTrace();
+        // Add headers with a bold font and blue color
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("#").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Date").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Day").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("T.Litres").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Per Litre").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("T. Amount").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Paid ").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Balance").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+
+        // Initialize totals
+        double totalLitres = 0;
+        double totalAmount = 0;
+        double totalPaidAmount = 0;
+        double totalBalance = 0;
+
+        // Populate table with milk sale data and calculate totals
+        int counter = 1;
+        for (MilkSale sale : milkSales) {
+            totalLitres += sale.getTotalLitres();
+            totalAmount += sale.getTotalAmount();
+            totalPaidAmount += sale.getTotalPaidAmount();
+            totalBalance += sale.getRemainingAmount();
+
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(counter++)).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(sale.getDate().toString()).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(sale.getDayOfWeek()).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(sale.getTotalLitres().toString()).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getLitreCost())).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getTotalAmount())).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getTotalPaidAmount())).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getRemainingAmount())).setFontSize(8)));
         }
 
-        return out.toByteArray();
+        // Add totals row with bold, blue text
+        salesTable.addCell(new Cell(1, 3).add(new Paragraph("Total").setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalLitres)).setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph("")));  // Skip Litre Cost
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalAmount)).setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalPaidAmount)).setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalBalance)).setBold().setFontSize(10).setFontColor(com.itextpdf.kernel.colors.ColorConstants.BLUE)));
+
+        // Add the sales table to the document
+        document.add(salesTable);
+
+        // Add a small description or report date
+        document.add(new Paragraph("Generated on: " + LocalDate.now()).setFontSize(10).setTextAlignment(TextAlignment.CENTER));
+
+        // Close document
+        document.close();
+
+        return new ByteArrayInputStream(out.toByteArray());
     }
-    public byte[] generatePdfReport() {
-        try (PDDocument document = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            // Create a new page
-            PDPage page = new PDPage();
-            document.addPage(page);
 
-            // Start a new content stream
-            try (PDPageContentStream contentStream = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.OVERWRITE, true, true)) {
-                // Set the font and font size
-                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 18);
+    public ByteArrayInputStream createSalesBtwPdf(LocalDate startDate, LocalDate endDate) throws MalformedURLException {
+        List<MilkSale> milkSales = milkSaleRepository.findAllByDateBetweenOrderByDateAsc(startDate, endDate);
 
-                // Write title
-                contentStream.beginText();
-                contentStream.setLeading(20f);
-                contentStream.newLineAtOffset(100, 700);
-                contentStream.showText("Milk Sales Report");
-                contentStream.newLine();
-                contentStream.newLine();
-                contentStream.setFont(PDType1Font.HELVETICA, 12);
+        // Output stream to hold the PDF content
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-                // Fetch data from the repository
-                List<MilkSale> milkSales = milkSaleRepository.findAll();
+        // Initialize PDF document
+        PdfWriter writer = new PdfWriter(out);
+        PdfDocument pdfDoc = new PdfDocument(writer);
+        pdfDoc.setDefaultPageSize(PageSize.A4);
+        Document document = new Document(pdfDoc);
 
-                // Write column headers
-                contentStream.showText("ID    Date       Day of Week      Liters Sold");
-                contentStream.newLine();
+        // Add Farm Header with Logo and Details
+        String logoPath = "src/main/resources/static/logo.jpg";  // Adjust the path as per your project structure
+        Image logoData = new Image(ImageDataFactory.create(logoPath)).scaleAbsolute(50, 50);
 
-                // Write each record
-                for (MilkSale sale : milkSales) {
-                    contentStream.showText(String.format("%-5d %-10s %-15s %-10.2f",
-                            sale.getId(),
-                            sale.getDate().toString(),
-                            sale.getDayOfWeek(),
-                            sale.getTotalLitres()));
-                    contentStream.newLine();
-                }
+        Table headerTable = new Table(UnitValue.createPercentArray(new float[]{1, 4})).useAllAvailableWidth();
+        headerTable.addCell(new Cell().add(logoData).setBorder(Border.NO_BORDER));
+        Cell farmDetailsCell = new Cell()
+                .add(new Paragraph("Farm Name: Dairy Farm Ltd").setBold().setFontSize(12))
+                .add(new Paragraph("Address: 1234 Farm Road, Green Valley").setFontSize(10))
+                .add(new Paragraph("Phone: +1234567890").setFontSize(10))
+                .add(new Paragraph("Location: Green Valley, TX").setFontSize(10))
+                .setBorder(Border.NO_BORDER)
+                .setTextAlignment(TextAlignment.LEFT);
+        headerTable.addCell(farmDetailsCell);
+        document.add(headerTable);
 
-                contentStream.endText();
-            }
+        // Add a line separator after the header
+        LineSeparator separator = new LineSeparator(new SolidLine(1f));
+        document.add(separator);
 
-            // Save document to byte array
-            document.save(out);
-            return out.toByteArray();
-        } catch (IOException e) {
-            e.printStackTrace();
+        // Add title for the sales report
+        document.add(new Paragraph("Milk Sales Report").setBold().setFontSize(16).setTextAlignment(TextAlignment.CENTER));
+        document.add(new Paragraph("\n"));
+
+        // Define a table for the sales report with proper column widths
+        Table salesTable = new Table(UnitValue.createPercentArray(new float[]{1, 2, 2, 2, 2, 2, 2, 2})).useAllAvailableWidth();
+        salesTable.setWidth(UnitValue.createPercentValue(100));
+
+        // Add headers with a bold font and blue color
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("#").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Date").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Day").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("T.Litres").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Per Litre").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("T. Amount").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Paid").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addHeaderCell(new Cell().add(new Paragraph("Balance").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+
+        // Initialize totals
+        double totalLitres = 0;
+        double totalAmount = 0;
+        double totalPaidAmount = 0;
+        double totalBalance = 0;
+
+        // Populate table with milk sale data and calculate totals
+        int counter = 1;
+        for (MilkSale sale : milkSales) {
+            totalLitres += sale.getTotalLitres();
+            totalAmount += sale.getTotalAmount();
+            totalPaidAmount += sale.getTotalPaidAmount();
+            totalBalance += sale.getRemainingAmount();
+
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(counter++)).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(sale.getDate().toString()).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(sale.getDayOfWeek()).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(sale.getTotalLitres().toString()).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getLitreCost())).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getTotalAmount())).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getTotalPaidAmount())).setFontSize(8)));
+            salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(sale.getRemainingAmount())).setFontSize(8)));
         }
-        return new byte[0];
+
+        // Add totals row with bold, blue text
+        salesTable.addCell(new Cell(1, 3).add(new Paragraph("Total").setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalLitres)).setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph("")));  // Skip Litre Cost
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalAmount)).setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalPaidAmount)).setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+        salesTable.addCell(new Cell().add(new Paragraph(String.valueOf(totalBalance)).setBold().setFontSize(10).setFontColor(ColorConstants.BLUE)));
+
+        // Add the sales table to the document
+        document.add(salesTable);
+
+        // Add footer text with the selected date range and report generation date
+        document.add(new Paragraph("\nReport for selected date: " + startDate + " to " + endDate)
+                .setFontSize(10).setTextAlignment(TextAlignment.CENTER));
+        document.add(new Paragraph("Generated on: " + LocalDate.now())
+                .setFontSize(10).setTextAlignment(TextAlignment.CENTER));
+
+        // Close document
+        document.close();
+
+        return new ByteArrayInputStream(out.toByteArray());
     }
+
 }
