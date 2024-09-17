@@ -27,7 +27,9 @@ public interface MilkSaleRepository extends JpaRepository<MilkSale, Long> {
     List<MilkSale> findByDateBetween(LocalDate startDate, LocalDate endDate);
 
     List<MilkSale> findByDateBetweenOrderByDateAsc(LocalDate startDate, LocalDate endDate);
+    List<MilkSale> findAllByOrderByDateAsc();
 
+    List<MilkSale> findAllByDateBetweenOrderByDateAsc(LocalDate startDate, LocalDate endDate);
     long countByStatus(PaymentStatus status);
 
     @Query("SELECT SUM(ms.totalLitres) FROM MilkSale ms")
