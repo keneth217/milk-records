@@ -5,7 +5,6 @@ import com.dairy.farm.repository.MilkSaleRepository;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
-import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -169,6 +168,7 @@ public class ReportService {
         document.add(separator);
 
         // Add title for the sales report
+        document.add(new Paragraph("\n"));
         document.add(new Paragraph("Milk Sales Report").setBold().setFontSize(16).setTextAlignment(TextAlignment.CENTER));
         document.add(new Paragraph("\n"));
 
